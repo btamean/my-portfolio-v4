@@ -30,7 +30,7 @@ export default function MacOSPortfolio() {
     if (appState === 'boot') {
       const bootTimer = setTimeout(() => {
         setAppState('desktop');
-      }, 3000); // 4초 후 데스크탑으로 전환
+      }, 10); // 4초 후 데스크탑으로 전환
       return () => clearTimeout(bootTimer);
     }
   }, [appState]);
