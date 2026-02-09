@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect } from 'react'; 
 import TerminalApp from '@/components/apps/TerminalApp';
 import SafariApp from '@/components/apps/SafariApp';
 import FinderApp from '@/components/apps/FinderApp';
 import SettingsApp from '@/components/apps/SettingsApp';
 import ContactsApp from '@/components/apps/ContactsApp';
+import MacBootScreen from './MacBootScreen';
 
+type AppState = 'boot' | 'desktop';
 type AppType = 'terminal' | 'safari' | 'finder' | 'settings' | 'contacts' | null;
 
 const APPS = [
@@ -19,9 +21,24 @@ const APPS = [
 ];
 
 export default function MacOSPortfolio() {
+  const [appState, setAppState] = useState<AppState>('boot');
   const [openApp, setOpenApp] = useState<AppType>(null);
   const [time, setTime] = useState(new Date());
 
+  // 3. 부팅 시퀀스 useEffect
+  useEffect(() => {
+    if (appState === 'boot') {
+      const bootTimer = setTimeout(() => {
+        setAppState('desktop');
+      }, 3000); // 4초 후 데스크탑으로 전환
+      return () => clearTimeout(bootTimer);
+    }
+  }, [appState]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
   React.useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
@@ -29,78 +46,79 @@ export default function MacOSPortfolio() {
 
   return (
     <div className="relative w-full h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 overflow-hidden">
-      {/* macOS Menu Bar */}
-      <div className="absolute top-0 left-0 right-0 h-7 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 flex items-center px-4 text-xs font-medium z-50">
-        <div className="flex items-center gap-4">
-          <AppleIcon />
-          <span className="font-semibold">Portfolio OS</span>
-          <span className="text-gray-600">File</span>
-          <span className="text-gray-600">Edit</span>
-          <span className="text-gray-600">View</span>
-        </div>
-        
-        <div className="ml-auto flex items-center gap-4 text-gray-700">
-          <span></span>
-          <span></span>
-          <span>{time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
-          <span>{time.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-        </div>
-      </div>
-
-      {/* Desktop Background */}
-      <div className="absolute inset-0 flex items-center justify-center pt-7">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.3 }}
-          className="text-center"
-        >
-          <h1 className="text-7xl font-bold mb-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-            허대범
-          </h1>
-          <p className="text-2xl text-gray-700 font-medium">Full Stack Developer</p>
-          <p className="text-lg text-gray-500 mt-2">Click any app below to explore</p>
-        </motion.div>
-      </div>
-
-      {/* Dock */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50">
-        <motion.div
-          initial={{ y: 100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.5, type: 'spring', stiffness: 200 }}
-          className="bg-white/40 backdrop-blur-2xl border border-white/50 rounded-3xl px-4 py-3 shadow-2xl"
-        >
-          <div className="flex items-end gap-3">
-            {APPS.map((app, index) => (
-              <DockIcon
-                key={app.id}
-                app={app}
-                index={index}
-                onClick={() => setOpenApp(app.id as AppType)}
-                isOpen={openApp === app.id}
-              />
-            ))}
-          </div>
-        </motion.div>
-      </div>
-
-      {/* App Windows */}
+      
+      {/* 4. AnimatePresence를 사용하여 부팅화면과 데스크탑 간의 전환 처리 */}
       <AnimatePresence mode="wait">
-        {openApp === 'terminal' && (
-          <TerminalApp onClose={() => setOpenApp(null)} />
-        )}
-        {openApp === 'safari' && (
-          <SafariApp onClose={() => setOpenApp(null)} />
-        )}
-        {openApp === 'finder' && (
-          <FinderApp onClose={() => setOpenApp(null)} />
-        )}
-        {openApp === 'settings' && (
-          <SettingsApp onClose={() => setOpenApp(null)} />
-        )}
-        {openApp === 'contacts' && (
-          <ContactsApp onClose={() => setOpenApp(null)} />
+        {appState === 'boot' ? (
+          <MacBootScreen key="boot" onComplete={() => setAppState('desktop')} />
+        ) : (
+          <motion.div 
+            key="desktop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="w-full h-full"
+          >
+            {/* --- 기존 macOS UI 내용 시작 --- */}
+            {/* macOS Menu Bar */}
+            <div className="absolute top-0 left-0 right-0 h-7 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 flex items-center px-4 text-xs font-medium z-50">
+              <div className="flex items-center gap-4">
+                <AppleIcon />
+                <span className="font-semibold">Portfolio OS</span>
+                {/* ... 메뉴 항목들 */}
+              </div>
+              <div className="ml-auto flex items-center gap-4 text-gray-700">
+                <span>{time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                <span>{time.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+              </div>
+            </div>
+
+            {/* Desktop Background & Content */}
+            <div className="absolute inset-0 flex items-center justify-center pt-7">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.3 }}
+                className="text-center"
+              >
+                <h1 className="text-7xl font-bold mb-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  허대범
+                </h1>
+                <p className="text-2xl text-gray-700 font-medium">Full Stack Developer</p>
+              </motion.div>
+            </div>
+
+            {/* Dock */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50">
+              <motion.div
+                initial={{ y: 100, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="bg-white/40 backdrop-blur-2xl border border-white/50 rounded-3xl px-4 py-3 shadow-2xl"
+              >
+                <div className="flex items-end gap-3">
+                  {APPS.map((app, index) => (
+                    <DockIcon
+                      key={app.id}
+                      app={app}
+                      index={index}
+                      onClick={() => setOpenApp(app.id as AppType)}
+                      isOpen={openApp === app.id}
+                    />
+                  ))}
+                </div>
+              </motion.div>
+            </div>
+
+            {/* App Windows */}
+            <AnimatePresence mode="wait">
+              {openApp === 'terminal' && <TerminalApp onClose={() => setOpenApp(null)} />}
+              {openApp === 'safari' && <SafariApp onClose={() => setOpenApp(null)} />}
+              {openApp === 'finder' && <FinderApp onClose={() => setOpenApp(null)} />}
+              {openApp === 'settings' && <SettingsApp onClose={() => setOpenApp(null)} />}
+              {openApp === 'contacts' && <ContactsApp onClose={() => setOpenApp(null)} />}
+            </AnimatePresence>
+            {/* --- 기존 macOS UI 내용 끝 --- */}
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
